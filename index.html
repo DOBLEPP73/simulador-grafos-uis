@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>                                              <!-- EStructura y Cabeceras  -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Grafos - UIS Sede Barbosa</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .node-circle { transition: all 0.3s ease; }
+        .edge-line { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- PORTADA / INICIO -->
+    <div id="landing-screen" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+        <div class="max-w-2xl bg-slate-900 border border-emerald-500/30 p-8 rounded-2xl shadow-2xl shadow-emerald-950/50 my-auto">
+            <div class="text-emerald-400 text-5xl mb-4">
+                <i class="fa-solid fa-project-diagram"></i>
+            </div>
+            <h1 class="text-3xl font-extrabold text-white mb-1">Simulador Interactivo de Grafos</h1>
+            <h2 class="text-emerald-400 font-semibold text-lg mb-1">Universidad Industrial de Santander</h2>
+            <h3 class="text-slate-400 text-xs tracking-widest uppercase mb-6 font-mono">SEDE BARBOSA</h3>
+            
+            <div class="text-slate-300 text-sm bg-slate-950/60 p-4 rounded-xl mb-4 text-left space-y-3 border border-slate-800">
+                <p><strong>¿Qué es un grafo?</strong> Imagínalo como un mapa de conexiones. Está formado por puntos (llamados <strong>nodos</strong>) y líneas que los unen (llamadas <strong>aristas</strong>).</p>
+                
+                <div class="bg-emerald-950/30 border border-emerald-500/20 p-3 rounded-lg text-xs text-emerald-200">
+                    <p class="font-bold mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Ejemplo didáctico:</p>
+                    <p>Piensa en una red social: cada persona es un <strong>nodo</strong>, y la amistad entre ellos es la <strong>arista</strong> que los conecta. Si quieres enviar un mensaje de una persona a otra, los algoritmos de este simulador te ayudan a encontrar el camino paso a paso.</p>
+                </div>
+            </div>
+
+            <div class="text-xs text-slate-400 mb-6 space-y-1 bg-slate-900/50 p-3 rounded-lg border border-slate-800/60">
+                <p><strong class="text-slate-200">Elaborado por:</strong> Andres Camilo Pineda Pineda</p>
+                <p><strong class="text-slate-200">Código:</strong> 2245002</p>
+            </div>
+
+            <button onclick="startApp()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-8 py-3 rounded-xl transition shadow-lg shadow-emerald-900/40 cursor-pointer">
+                <i class="fa-solid fa-play mr-2"></i> Ingresar al Simulador
+            </button>
+        </div>
+    </div>
+
+    <!-- APLICACIÓN PRINCIPAL -->
+    <header class="bg-slate-900 border-b border-emerald-500/20 px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="bg-emerald-600/20 text-emerald-400 p-2.5 rounded-xl border border-emerald-500/30">
+                <i class="fa-solid fa-project-diagram text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold text-white tracking-wide">Grafos UIS - Sede Barbosa</h1>
+                <p class="text-xs text-emerald-400 font-medium">Recorridos BFS y DFS paso a paso</p>
+            </div>
+        </div>
+
+        <!-- Herramientas de edición -->
+        <div class="flex items-center bg-slate-950 p-1.5 rounded-xl border border-slate-800 gap-1">
+            <button id="btn-mode-node" onclick="setMode('node')" class="px-4 py-2 rounded-lg text-sm font-medium transition bg-emerald-600 text-white shadow">
+                <i class="fa-solid fa-circle-plus mr-1.5"></i> Agregar Nodo
+            </button>
+            <button id="btn-mode-edge" onclick="setMode('edge')" class="px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white">
+                <i class="fa-solid fa-route mr-1.5"></i> Crear Arista
+            </button>
+            <button onclick="clearGraph()" class="px-4 py-2 rounded-lg text-sm font-medium transition text-red-400 hover:bg-red-500/10">
+                <i class="fa-solid fa-trash mr-1.5"></i> Limpiar
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-4 p-6 gap-6 max-w-[1700px] w-full mx-auto">
+        <!-- Lienzo SVG -->
+        <div class="lg:col-span-3 bg-slate-900/80 border border-emerald-500/20 rounded-2xl relative overflow-hidden flex flex-col shadow-inner min-h-[500px]">
+            <div class="absolute top-4 left-4 bg-slate-950/80 backdrop-blur border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 flex items-center gap-2 z-10">
+                <span id="mode-indicator" class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span id="mode-text">Modo actual: Agregar Nodos (Clic en el lienzo)</span>
+            </div>
+
+            <svg id="graph-svg" class="w-full h-full flex-1 cursor-crosshair" onclick="handleCanvasClick(event)">
+                <!-- Las aristas y nodos se pintan dinámicamente -->
+            </svg>
+
+            <!-- Controles de Animación Inferiores -->
+            <div class="bg-slate-950/90 border-t border-emerald-500/20 p-4 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <select id="algorithm-select" class="bg-slate-900 border border-emerald-500/30 text-white text-sm rounded-lg px-3 py-2 outline-none focus:border-emerald-500">
+                        <option value="BFS">BFS (Anchura)</option>
+                        <option value="DFS">DFS (Profundidad)</option>
+                    </select>
+                    <div class="flex items-center gap-2 text-sm text-slate-300">
+                        <span>Inicio:</span>
+                        <select id="start-node-select" class="bg-slate-900 border border-emerald-500/30 text-white text-sm rounded-lg px-3 py-2 outline-none">
+                            <option value="">--</option>
+                        </select>
+                    </div>
+                    <button onclick="startAnimation()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-play"></i> Iniciar
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="prevStep()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white px-3 py-2 rounded-lg text-sm transition"><i class="fa-solid fa-backward-step"></i></button>
+                    <button onclick="togglePlay()" id="btn-play-pause" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-emerald-400 px-4 py-2 rounded-lg text-sm font-semibold transition"><i class="fa-solid fa-play"></i> Play</button>
+                    <button onclick="nextStep()" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white px-3 py-2 rounded-lg text-sm transition"><i class="fa-solid fa-forward-step"></i></button>
+                    <span id="step-counter" class="text-xs text-slate-400 ml-2 font-mono">Paso: 0 / 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Lateral (Lista y Matriz) -->
+        <div class="flex flex-col gap-6">
+            <!-- Lista de Adyacencia -->
+            <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-4 flex flex-col flex-1 shadow-md">
+                <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-list-ul"></i> Lista de Adyacencia
+                </h2>
+                <div id="adjacency-list" class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono overflow-y-auto max-h-48 space-y-1.5 text-slate-300">
+                    <span class="text-slate-600">Sin nodos creados</span>
+                </div>
+            </div>
+
+            <!-- Matriz de Adyacencia -->
+            <div class="bg-slate-900 border border-emerald-500/20 rounded-2xl p-4 flex flex-col flex-1 shadow-md">
+                <h2 class="text-sm font-bold text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-table"></i> Matriz de Adyacencia
+                </h2>
+                <div id="adjacency-matrix" class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono overflow-auto max-h-48 flex items-center justify-center">
+                    <span class="text-slate-600">Sin matriz disponible</span>
+                </div>
+            </div>
+        </div>
+    </main>            // todo esto es el frontend , o la portada de la pagina 
+
+    <script>               // Este script contiene toda la logica de la pagina, es decir, el backend de la pagina
+        let nodes = [];
+        let edges = [];
+        let mode = 'node';                                 /* Aca con estos lets estamos declarando variables 
+                                                            como lo son  aristas , los nodos  , las animaciones */
+        let selectedNodeForEdge = null;
+        let animationSteps = [];
+        let currentStepIndex = 0;
+        let isPlaying = false;
+        let playInterval = null;
+        let nodeLabelCounter = 0;
+
+        function startApp() {
+            document.getElementById('landing-screen').style.display = 'none';          // Oculta la pantalla de inicio y muestra la aplicación principal
+        }
+
+        function setMode(newMode) {                                                 // Cambia entre el modo de agregar nodos y el modo de crear aristas
+            mode = newMode;
+            selectedNodeForEdge = null;
+            const btnNode = document.getElementById('btn-mode-node');
+            const btnEdge = document.getElementById('btn-mode-edge');
+            const indicator = document.getElementById('mode-indicator');
+            const text = document.getElementById('mode-text');
+
+            if (mode === 'node') {                                                // Si el modo es "node", se actualizan los estilos de los botones y el indicador de modo
+                btnNode.className = "px-4 py-2 rounded-lg text-sm font-medium transition bg-emerald-600 text-white shadow";
+                btnEdge.className = "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white";
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+                text.innerText = "Modo actual: Agregar Nodos (Clic en el lienzo)";
+            } else {
+                btnEdge.className = "px-4 py-2 rounded-lg text-sm font-medium transition bg-emerald-600 text-white shadow";
+                btnNode.className = "px-4 py-2 rounded-lg text-sm font-medium transition text-slate-400 hover:text-white";
+                indicator.className = "w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse";
+                text.innerText = "Modo actual: Crear Aristas (Clic a 2 nodos o doble clic para bucle A->A)";
+            }
+            renderGraph();
+        }
+ 
+        function handleCanvasClick(event) {                // Maneja el clic en el lienzo SVG para agregar nodos
+            if (event.target.tagName !== 'svg' && event.target.tagName !== 'rect') return;
+            const rect = document.getElementById('graph-svg').getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            if (mode === 'node') {                   
+                const label = String.fromCharCode(65 + (nodeLabelCounter % 26)) + (nodeLabelCounter >= 26 ? Math.floor(nodeLabelCounter/26) : '');
+                nodeLabelCounter++;
+                nodes.push({ id: nodes.length, label, x, y, state: 'normal' });
+                updateStartNodeOptions();
+                renderGraph();
+            }
+        }
+
+        function handleNodeClick(nodeId, event) {        // Maneja el clic en un nodo para crear aristas
+            event.stopPropagation();
+            if (mode === 'edge') {                    // Si el modo es "edge", se selecciona un nodo para crear una arista
+                if (selectedNodeForEdge === null) {
+                    selectedNodeForEdge = nodeId;
+                    nodes.find(n => n.id === nodeId).state = 'selected';
+                } else {
+                    if (selectedNodeForEdge === nodeId) {
+                        // Bucle a sí mismo (A -> A) al hacer doble clic o repetir clic en el mismo nodo
+                        const exists = edges.some(e => e.from === nodeId && e.to === nodeId);
+                        if (!exists) {
+                            edges.push({ from: nodeId, to: nodeId });
+                        }
+                    } else {
+                        const exists = edges.some(e => (e.from === selectedNodeForEdge && e.to === nodeId) || (e.from === nodeId && e.to === selectedNodeForEdge));
+                        if (!exists) {
+                            edges.push({ from: selectedNodeForEdge, to: nodeId });
+                        }
+                    }
+                    nodes.find(n => n.id === selectedNodeForEdge).state = 'normal';
+                    selectedNodeForEdge = null;
+                }
+                renderGraph();
+            }
+        }
+
+        function clearGraph() {          // Limpia todos los nodos y aristas del grafo
+            nodes = [];
+            edges = [];
+            nodeLabelCounter = 0;
+            selectedNodeForEdge = null;
+            animationSteps = [];
+            currentStepIndex = 0;
+            stopAnimation();
+            updateStartNodeOptions();
+            renderGraph();
+        }
+
+        function updateStartNodeOptions() {          // Actualiza las opciones del nodo inicial en el panel de animación
+            const select = document.getElementById('start-node-select');
+            select.innerHTML = '<option value="">--</option>';
+            nodes.forEach(n => {
+                const opt = document.createElement('option');
+                opt.value = n.id;
+                opt.innerText = n.label;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderGraph() {  // Renderiza los nodos y aristas en el lienzo SVG
+            const svg = document.getElementById('graph-svg');
+            let html = '';
+
+            // Dibujar Aristas
+            edges.forEach(e => {
+                const n1 = nodes.find(n => n.id === e.from);
+                const n2 = nodes.find(n => n.id === e.to);
+                if (n1 && n2) {
+                    if (e.from === e.to) {
+                        // Bucle sobre el mismo nodo (A -> A)
+                        html += `<path d="M ${n1.x} ${n1.y - 22} C ${n1.x - 40} ${n1.y - 70}, ${n1.x + 40} ${n1.y - 70}, ${n1.x} ${n1.y - 22}" stroke="#059669" stroke-width="3" fill="none" stroke-opacity="0.8" class="edge-line" />`;
+                    } else {
+                        html += `<line x1="${n1.x}" y1="${n1.y}" x2="${n2.x}" y2="${n2.y}" stroke="#059669" stroke-width="3" stroke-opacity="0.6" class="edge-line" />`;
+                    }
+                }
+            });
+ 
+            // Dibujar Nodos
+            nodes.forEach(n => {                  // Se dibujan los nodos con colores según su estado (normal, seleccionado, visitado, actual)
+                let fillColor = "#0f172a";
+                let strokeColor = "#059669";
+                let textColor = "#e2e8f0";
+
+                if (n.state === 'selected') { strokeColor = "#a855f7"; fillColor = "#581c87"; }
+                if (n.state === 'visited') { fillColor = "#047857"; strokeColor = "#34d399"; textColor = "#ffffff"; }
+                if (n.state === 'current') { fillColor = "#f59e0b"; strokeColor = "#fbbf24"; textColor = "#000000"; }
+
+                html += `
+                    <g transform="translate(${n.x}, ${n.y})" onclick="handleNodeClick(${n.id}, event)" class="cursor-pointer node-circle">
+                        <circle r="22" fill="${fillColor}" stroke="${strokeColor}" stroke-width="3" />
+                        <text text-anchor="middle" dominant-baseline="central" fill="${textColor}" font-weight="bold" font-size="14">${n.label}</text>
+                    </g>
+                `;
+            });
+
+            svg.innerHTML = html;
+            updateAdjacencyPanel();
+        }
+
+        function updateAdjacencyPanel() {                    // Actualiza la lista y matriz de adyacencia en el panel lateral
+            const listDiv = document.getElementById('adjacency-list');
+            const matrixDiv = document.getElementById('adjacency-matrix');
+
+            if (nodes.length === 0) {
+                listDiv.innerHTML = '<span class="text-slate-600">Sin nodos creados</span>';
+                matrixDiv.innerHTML = '<span class="text-slate-600">Sin matriz disponible</span>';
+                return;
+            }
+
+            // Lista
+            let listHtml = '';
+            nodes.forEach(n => {
+                const neighbors = [];
+                edges.forEach(e => {
+                    if (e.from === n.id) neighbors.push(nodes.find(nd => nd.id === e.to).label);
+                    else if (e.to === n.id) neighbors.push(nodes.find(nd => nd.id === e.from).label);
+                });
+                listHtml += `<div><strong class="text-emerald-400">${n.label}:</strong> [ ${neighbors.join(', ')} ]</div>`;
+            });
+            listDiv.innerHTML = listHtml;
+
+            // Matriz
+            let matrix = Array(nodes.length).fill(0).map(() => Array(nodes.length).fill(0));
+            edges.forEach(e => {
+                const idx1 = nodes.findIndex(n => n.id === e.from);
+                const idx2 = nodes.findIndex(n => n.id === e.to);
+                if (idx1 !== -1 && idx2 !== -1) {
+                    matrix[idx1][idx2] += 1;
+                    if (idx1 !== idx2) {
+                        matrix[idx2][idx1] += 1;
+                    }
+                }
+            });
+
+            let matrixHtml = '<table class="border-collapse text-center"><tr><th class="p-1 text-emerald-500">#</th>';
+            nodes.forEach(n => matrixHtml += `<th class="p-1 text-emerald-500">${n.label}</th>`);
+            matrixHtml += '</tr>';
+
+            nodes.forEach((n, i) => {
+                matrixHtml += `<tr><th class="p-1 text-emerald-500">${n.label}</th>`;
+                nodes.forEach((_, j) => {
+                    matrixHtml += `<td class="p-1 px-2 border border-slate-800 text-slate-300">${matrix[i][j]}</td>`;
+                });
+                matrixHtml += '</tr>';
+            });
+            matrixHtml += '</table>';
+            matrixDiv.innerHTML = matrixHtml;
+        }
+
+        // Simulación algoritmos BFS y DFS
+        function startAnimation() {
+            const startId = document.getElementById('start-node-select').value;
+            const algorithm = document.getElementById('algorithm-select').value;
+            if (startId === "") { alert("Selecciona un nodo inicial"); return; }
+
+            const startNodeId = parseInt(startId);
+            animationSteps = [];
+            
+            const adj = {};
+            nodes.forEach(n => adj[n.id] = []);
+            edges.forEach(e => {
+                adj[e.from].push(e.to);
+                if (e.from !== e.to) {
+                    adj[e.to].push(e.from);
+                }
+            });
+
+            let visited = new Set();
+
+            if (algorithm === 'BFS') {
+                let q = [startNodeId];
+                visited.add(startNodeId);
+                animationSteps.push({ visited: new Set(visited), current: startNodeId });
+
+                while(q.length > 0) {
+                    let u = q.shift();
+                    adj[u].forEach(v => {
+                        if (!visited.has(v)) {
+                            visited.add(v);
+                            q.push(v);
+                            animationSteps.push({ visited: new Set(visited), current: v });
+                        }
+                    });
+                }
+            } else { // DFS
+                let s = [startNodeId];
+                while(s.length > 0) {
+                    let u = s.pop();
+                    if (!visited.has(u)) {
+                        visited.add(u);
+                        animationSteps.push({ visited: new Set(visited), current: u });
+                        for (let i = adj[u].length - 1; i >= 0; i--) {
+                            let v = adj[u][i];
+                            if (!visited.has(v)) s.push(v);
+                        }
+                    }
+                }
+            }
+
+            currentStepIndex = 0;
+            applyStep();
+        }
+
+        function applyStep() {
+            if (animationSteps.length === 0) return;
+            const step = animationSteps[currentStepIndex];
+            nodes.forEach(n => {
+                if (step.visited.has(n.id)) n.state = 'visited';
+                else n.state = 'normal';
+                if (n.id === step.current) n.state = 'current';
+            });
+            renderGraph();
+            document.getElementById('step-counter').innerText = `Paso: ${currentStepIndex + 1} / ${animationSteps.length}`;
+        }
+
+        function nextStep() {
+            if (currentStepIndex < animationSteps.length - 1) {
+                currentStepIndex++;
+                applyStep();
+            }
+        }
+
+        function prevStep() {
+            if (currentStepIndex > 0) {
+                currentStepIndex--;
+                applyStep();
+            }
+        }
+
+        function togglePlay() {
+            if (isPlaying) {
+                stopAnimation();
+            } else {
+                if (animationSteps.length === 0) return;
+                isPlaying = true;
+                document.getElementById('btn-play-pause').innerHTML = '<i class="fa-solid fa-pause"></i> Pausa';
+                playInterval = setInterval(() => {
+                    if (currentStepIndex < animationSteps.length - 1) {
+                        currentStepIndex++;
+                        applyStep();
+                    } else {
+                        stopAnimation();
+                    }
+                }, 800);
+            }
+        }
+
+        function stopAnimation() {
+            isPlaying = false;
+            clearInterval(playInterval);
+            document.getElementById('btn-play-pause').innerHTML = '<i class="fa-solid fa-play"></i> Play';
+        }
+    </script>
+</body>
+</html>
